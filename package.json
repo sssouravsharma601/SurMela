@@ -2,7 +2,7 @@
   "name": "surmela",
   "version": "1.0.0",
   "description": "SurMela - A modern music player and playlist manager",
-  "main": "dist/main/index.js",
+  "main": "dist/main/main/index.js",
   "author": "Sourav Sharma <ersourav2204@gmail.com>",
   "license": "MIT",
   "scripts": {
@@ -33,6 +33,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@types/better-sqlite3": "^7.6.12",
     "@types/howler": "^2.2.11",
     "@types/node": "^20.14.10",

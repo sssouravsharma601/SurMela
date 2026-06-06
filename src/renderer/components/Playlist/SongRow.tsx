@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Pause, Heart, MoreHorizontal, Trash2, ExternalLink, Plus } from 'lucide-react';
+import { Play, Pause, Heart, MoreHorizontal, Trash2, ExternalLink, Plus, WifiOff } from 'lucide-react';
 import { Song } from '../../../shared/types';
 import { formatDuration } from '../../services/formatUtils';
 import { useAppStore } from '../../store/appStore';
@@ -78,9 +78,16 @@ export default function SongRow({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className={clsx('text-sm font-medium truncate', isActive ? 'text-primary-300' : 'text-white')}>
-          {song.title}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className={clsx('text-sm font-medium truncate', isActive ? 'text-primary-300' : 'text-white')}>
+            {song.title}
+          </p>
+          {!song.filePath && (
+            <span title="No local file — add an MP3 path to play" className="text-white/20 flex-shrink-0">
+              <WifiOff size={11} />
+            </span>
+          )}
+        </div>
         <p className="text-xs text-white/40 truncate">{song.singer} • {song.album}</p>
       </div>
 

@@ -1,14 +1,26 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { audioService } from '../services/audioService';
 import { usePlayerStore } from '../store/playerStore';
 import { Song } from '../../shared/types';
 
 export function useAudio() {
   const {
-    currentSong, isPlaying, volume, muted, repeatMode, shuffle,
+    currentSong, isPlaying, volume, muted,
     setIsPlaying, setPosition, setDuration, setIsBuffering,
-    nextSong, queue, queueIndex, setQueue,
+    nextSong,
   } = usePlayerStore();
+
+  // Use ref so event handlers always see the latest version without re-registering
+  const nextSongRef = useRef(nextSong);
+  nextSongRef.current = nextSong;
+
+  const playSong = useCallback((song: Song, autoplay = true) => {
+    setIsBuffering(true);
+    audioService.load(song, autoplay);
+  }, [setIsBuffering]);
+
+  const playSongRef = useRef(playSong);
+  playSongRef.current = playSong;
 
   useEffect(() => {
     const onProgress = (data: unknown) => {
@@ -26,15 +38,23 @@ export function useAudio() {
       setIsBuffering(false);
     };
 
-    const onEnded = () => {
-      const next = nextSong();
+    const advance = () => {
+      const next = nextSongRef.current();
       if (next) {
-        playSong(next, true);
+        playSongRef.current(next, true);
         window.electronAPI?.songs.incrementPlayCount(next.id);
       } else {
         setIsPlaying(false);
         setPosition(0);
       }
+    };
+
+    const onEnded = advance;
+
+    // Song has no local file — skip it automatically
+    const onNoLocalFile = () => {
+      setIsBuffering(false);
+      advance();
     };
 
     const onError = () => {
@@ -48,6 +68,7 @@ export function useAudio() {
     audioService.on('stop', onStop);
     audioService.on('loaded', onLoaded);
     audioService.on('ended', onEnded);
+    audioService.on('noLocalFile', onNoLocalFile);
     audioService.on('error', onError);
 
     return () => {
@@ -57,14 +78,10 @@ export function useAudio() {
       audioService.off('stop', onStop);
       audioService.off('loaded', onLoaded);
       audioService.off('ended', onEnded);
+      audioService.off('noLocalFile', onNoLocalFile);
       audioService.off('error', onError);
     };
-  }, [nextSong, setIsPlaying, setPosition, setDuration, setIsBuffering]);
-
-  const playSong = useCallback((song: Song, autoplay = true) => {
-    setIsBuffering(true);
-    audioService.load(song, autoplay);
-  }, [setIsBuffering]);
+  }, [setIsPlaying, setPosition, setDuration, setIsBuffering]);
 
   const togglePlayPause = useCallback(() => {
     if (!currentSong) return;

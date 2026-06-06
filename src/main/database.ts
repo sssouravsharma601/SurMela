@@ -243,35 +243,30 @@ function getDefaultSongs(now: string) {
   ];
 }
 
+// SQLite returns 0/1 for booleans — cast to proper JS boolean
+function normalizeSong(row: Record<string, unknown>): Song {
+  return { ...row, isFavorite: !!row.isFavorite } as Song;
+}
+
 // CRUD operations
+const SONG_SELECT = `
+  SELECT id, title, singer, album, year, genre, duration,
+         file_path as filePath, artwork_path as artworkPath, youtube_url as youtubeUrl,
+         play_count as playCount, is_favorite as isFavorite,
+         last_played as lastPlayed, added_at as addedAt
+  FROM songs`;
+
 export function getAllSongs(): Song[] {
-  return db.prepare(`
-    SELECT id, title, singer, album, year, genre, duration,
-           file_path as filePath, artwork_path as artworkPath, youtube_url as youtubeUrl,
-           play_count as playCount, is_favorite as isFavorite,
-           last_played as lastPlayed, added_at as addedAt
-    FROM songs ORDER BY title
-  `).all() as Song[];
+  return (db.prepare(`${SONG_SELECT} ORDER BY title`).all() as Record<string, unknown>[]).map(normalizeSong);
 }
 
 export function getSongById(id: string): Song | null {
-  return db.prepare(`
-    SELECT id, title, singer, album, year, genre, duration,
-           file_path as filePath, artwork_path as artworkPath, youtube_url as youtubeUrl,
-           play_count as playCount, is_favorite as isFavorite,
-           last_played as lastPlayed, added_at as addedAt
-    FROM songs WHERE id = ?
-  `).get(id) as Song | null;
+  const row = db.prepare(`${SONG_SELECT} WHERE id = ?`).get(id) as Record<string, unknown> | undefined;
+  return row ? normalizeSong(row) : null;
 }
 
 export function searchSongs(query: string, filters: Record<string, string | number>): Song[] {
-  let sql = `
-    SELECT id, title, singer, album, year, genre, duration,
-           file_path as filePath, artwork_path as artworkPath, youtube_url as youtubeUrl,
-           play_count as playCount, is_favorite as isFavorite,
-           last_played as lastPlayed, added_at as addedAt
-    FROM songs WHERE 1=1
-  `;
+  let sql = `${SONG_SELECT} WHERE 1=1`;
   const params: (string | number)[] = [];
 
   if (query) {
@@ -285,7 +280,7 @@ export function searchSongs(query: string, filters: Record<string, string | numb
   if (filters.year) { sql += ` AND year = ?`; params.push(filters.year); }
 
   sql += ` ORDER BY title`;
-  return db.prepare(sql).all(...params) as Song[];
+  return (db.prepare(sql).all(...params) as Record<string, unknown>[]).map(normalizeSong);
 }
 
 export function insertSong(song: Omit<Song, 'playCount' | 'isFavorite' | 'lastPlayed' | 'addedAt'>): Song {
@@ -340,7 +335,7 @@ export function getAllPlaylists(): { id: string; name: string; description: stri
 }
 
 export function getPlaylistSongs(playlistId: string): Song[] {
-  return db.prepare(`
+  return (db.prepare(`
     SELECT s.id, s.title, s.singer, s.album, s.year, s.genre, s.duration,
            s.file_path as filePath, s.artwork_path as artworkPath, s.youtube_url as youtubeUrl,
            s.play_count as playCount, s.is_favorite as isFavorite,
@@ -349,7 +344,7 @@ export function getPlaylistSongs(playlistId: string): Song[] {
     JOIN playlist_songs ps ON s.id = ps.song_id
     WHERE ps.playlist_id = ?
     ORDER BY ps.position
-  `).all(playlistId) as Song[];
+  `).all(playlistId) as Record<string, unknown>[]).map(normalizeSong);
 }
 
 export function createPlaylist(name: string, description: string): string {
@@ -418,35 +413,15 @@ export function getSettings(): AppSettings {
 }
 
 export function getRecentlyPlayed(limit = 20): Song[] {
-  return db.prepare(`
-    SELECT id, title, singer, album, year, genre, duration,
-           file_path as filePath, artwork_path as artworkPath, youtube_url as youtubeUrl,
-           play_count as playCount, is_favorite as isFavorite,
-           last_played as lastPlayed, added_at as addedAt
-    FROM songs WHERE last_played IS NOT NULL
-    ORDER BY last_played DESC LIMIT ?
-  `).all(limit) as Song[];
+  return (db.prepare(`${SONG_SELECT} WHERE last_played IS NOT NULL ORDER BY last_played DESC LIMIT ?`).all(limit) as Record<string, unknown>[]).map(normalizeSong);
 }
 
 export function getMostPlayed(limit = 20): Song[] {
-  return db.prepare(`
-    SELECT id, title, singer, album, year, genre, duration,
-           file_path as filePath, artwork_path as artworkPath, youtube_url as youtubeUrl,
-           play_count as playCount, is_favorite as isFavorite,
-           last_played as lastPlayed, added_at as addedAt
-    FROM songs WHERE play_count > 0
-    ORDER BY play_count DESC LIMIT ?
-  `).all(limit) as Song[];
+  return (db.prepare(`${SONG_SELECT} WHERE play_count > 0 ORDER BY play_count DESC LIMIT ?`).all(limit) as Record<string, unknown>[]).map(normalizeSong);
 }
 
 export function getFavoriteSongs(): Song[] {
-  return db.prepare(`
-    SELECT id, title, singer, album, year, genre, duration,
-           file_path as filePath, artwork_path as artworkPath, youtube_url as youtubeUrl,
-           play_count as playCount, is_favorite as isFavorite,
-           last_played as lastPlayed, added_at as addedAt
-    FROM songs WHERE is_favorite = 1 ORDER BY title
-  `).all() as Song[];
+  return (db.prepare(`${SONG_SELECT} WHERE is_favorite = 1 ORDER BY title`).all() as Record<string, unknown>[]).map(normalizeSong);
 }
 
 export function incrementPlayCount(id: string): void {
