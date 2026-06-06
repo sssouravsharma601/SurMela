@@ -1,8 +1,19 @@
 import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { initDatabase } from './database';
 import { registerIpcHandlers } from './ipc';
 import Store from 'electron-store';
+
+const logFile = path.join(app.getPath('temp'), 'surmela-debug.log');
+function log(...args: unknown[]) {
+  const msg = `[${new Date().toISOString()}] ${args.map(String).join(' ')}\n`;
+  process.stdout.write(msg);
+  fs.appendFileSync(logFile, msg);
+}
+
+process.on('uncaughtException', (err) => log('UNCAUGHT:', err.stack));
+process.on('unhandledRejection', (err) => log('UNHANDLED:', err));
 
 const store = new Store();
 let mainWindow: BrowserWindow | null = null;
@@ -64,7 +75,17 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  await initDatabase();
+  log('App ready. userData:', app.getPath('userData'));
+  log('Log file:', logFile);
+  try {
+    await initDatabase();
+    log('DB initialized OK');
+  } catch (err) {
+    log('DB INIT FAILED:', err);
+    dialog.showErrorBox('Database Error', String(err));
+    app.quit();
+    return;
+  }
   registerIpcHandlers(ipcMain);
   createWindow();
 

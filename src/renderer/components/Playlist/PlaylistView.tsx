@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { LayoutGrid, List, ArrowUpDown, ExternalLink, Plus } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { LayoutGrid, List, ArrowUpDown, Plus } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { Song, SortField } from '../../../shared/types';
@@ -14,20 +14,38 @@ interface PlaylistViewProps {
 
 export default function PlaylistView({ onPlaySong }: PlaylistViewProps) {
   const {
-    playlists, currentPlaylistId, currentPlaylistSongs,
+    playlists, currentPlaylistId,
     viewMode, setViewMode, sortBy, setSortBy, sortOrder, setSortOrder,
-    setCurrentPlaylistSongs,
   } = useAppStore();
   const { currentSong, isPlaying, setQueue } = usePlayerStore();
 
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddSong, setShowAddSong] = useState(false);
+
+  // Fetch songs directly from IPC whenever the active playlist changes
+  useEffect(() => {
+    if (!currentPlaylistId) {
+      setSongs([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    window.electronAPI?.playlists.getSongs(currentPlaylistId).then((s) => {
+      setSongs(s ?? []);
+      setLoading(false);
+    }).catch(() => {
+      setSongs([]);
+      setLoading(false);
+    });
+  }, [currentPlaylistId]);
 
   const playlist = playlists.find(p => p.id === currentPlaylistId);
 
-  const sorted = [...currentPlaylistSongs].sort((a, b) => {
-    const aVal = a[sortBy as keyof Song];
-    const bVal = b[sortBy as keyof Song];
-    const cmp = String(aVal).localeCompare(String(bVal), undefined, { numeric: true });
+  const sorted = [...songs].sort((a, b) => {
+    const aVal = String(a[sortBy as keyof Song] ?? '');
+    const bVal = String(b[sortBy as keyof Song] ?? '');
+    const cmp = aVal.localeCompare(bVal, undefined, { numeric: true });
     return sortOrder === 'asc' ? cmp : -cmp;
   });
 
@@ -40,17 +58,12 @@ export default function PlaylistView({ onPlaySong }: PlaylistViewProps) {
   const handleRemove = async (song: Song) => {
     if (!currentPlaylistId) return;
     await window.electronAPI?.playlists.removeSong(currentPlaylistId, song.id);
-    const updated = await window.electronAPI?.playlists.getSongs(currentPlaylistId) ?? [];
-    setCurrentPlaylistSongs(updated);
-    setQueue(updated, 0);
+    setSongs(prev => prev.filter(s => s.id !== song.id));
   };
 
   const handleFavorite = async (song: Song) => {
-    await window.electronAPI?.songs.toggleFavorite(song.id);
-    const updated = currentPlaylistSongs.map(s =>
-      s.id === song.id ? { ...s, isFavorite: !s.isFavorite } : s
-    );
-    setCurrentPlaylistSongs(updated);
+    const newFav = await window.electronAPI?.songs.toggleFavorite(song.id);
+    setSongs(prev => prev.map(s => s.id === song.id ? { ...s, isFavorite: !!newFav } : s));
   };
 
   const sortFields: { field: SortField; label: string }[] = [
@@ -72,9 +85,9 @@ export default function PlaylistView({ onPlaySong }: PlaylistViewProps) {
       <div className="px-6 py-4 border-b border-white/5 flex items-center gap-4 flex-shrink-0">
         <div className="flex-1">
           <h1 className="text-xl font-bold text-white">{playlist?.name ?? 'Playlist'}</h1>
-          <p className="text-sm text-white/40 mt-0.5">{currentPlaylistSongs.length} songs</p>
+          <p className="text-sm text-white/40 mt-0.5">{songs.length} songs</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowAddSong(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-600/20 text-primary-300 hover:bg-primary-600/30 transition-colors text-sm"
@@ -113,13 +126,17 @@ export default function PlaylistView({ onPlaySong }: PlaylistViewProps) {
 
       {/* Song list */}
       <div className="flex-1 overflow-y-auto">
-        {currentPlaylistSongs.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="w-8 h-8 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+          </div>
+        ) : songs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-white/30">
             <p className="text-lg">No songs in this playlist</p>
             <p className="text-sm mt-1">Click "Add Song" to get started</p>
           </div>
         ) : viewMode === 'list' ? (
-          <div className="divide-y divide-white/5">
+          <div>
             {sorted.map((song, idx) => (
               <SongRow
                 key={song.id}
@@ -150,13 +167,13 @@ export default function PlaylistView({ onPlaySong }: PlaylistViewProps) {
         )}
       </div>
 
-      {showAddSong && (
+      {showAddSong && currentPlaylistId && (
         <AddSongModal
-          playlistId={currentPlaylistId!}
+          playlistId={currentPlaylistId}
           onClose={() => setShowAddSong(false)}
           onAdded={async () => {
-            const updated = await window.electronAPI?.playlists.getSongs(currentPlaylistId!) ?? [];
-            setCurrentPlaylistSongs(updated);
+            const updated = await window.electronAPI?.playlists.getSongs(currentPlaylistId) ?? [];
+            setSongs(updated);
             setQueue(updated, 0);
             setShowAddSong(false);
           }}

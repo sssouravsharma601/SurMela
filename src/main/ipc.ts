@@ -5,7 +5,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 export function registerIpcHandlers(ipcMain: IpcMain): void {
   // Songs
-  ipcMain.handle('songs:getAll', () => db.getAllSongs());
+  ipcMain.handle('songs:getAll', () => {
+    const songs = db.getAllSongs();
+    console.log('[IPC] songs:getAll →', songs.length, 'songs');
+    return songs;
+  });
   ipcMain.handle('songs:getById', (_e, id: string) => db.getSongById(id));
   ipcMain.handle('songs:search', (_e, query: string, filters: Record<string, string | number>) => db.searchSongs(query, filters));
   ipcMain.handle('songs:insert', (_e, song: Omit<Song, 'id' | 'playCount' | 'isFavorite' | 'lastPlayed' | 'addedAt'>) => {
@@ -20,8 +24,16 @@ export function registerIpcHandlers(ipcMain: IpcMain): void {
   ipcMain.handle('songs:getFavorites', () => db.getFavoriteSongs());
 
   // Playlists
-  ipcMain.handle('playlists:getAll', () => db.getAllPlaylists());
-  ipcMain.handle('playlists:getSongs', (_e, playlistId: string) => db.getPlaylistSongs(playlistId));
+  ipcMain.handle('playlists:getAll', () => {
+    const pl = db.getAllPlaylists();
+    console.log('[IPC] playlists:getAll →', pl.map(p => `${p.name}(${p.songCount})`));
+    return pl;
+  });
+  ipcMain.handle('playlists:getSongs', (_e, playlistId: string) => {
+    const songs = db.getPlaylistSongs(playlistId);
+    console.log('[IPC] playlists:getSongs', playlistId, '→', songs.length, 'songs');
+    return songs;
+  });
   ipcMain.handle('playlists:create', (_e, name: string, description: string) => db.createPlaylist(name, description));
   ipcMain.handle('playlists:rename', (_e, id: string, name: string) => db.renamePlaylist(id, name));
   ipcMain.handle('playlists:delete', (_e, id: string) => db.deletePlaylist(id));

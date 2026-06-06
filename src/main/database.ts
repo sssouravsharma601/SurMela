@@ -14,6 +14,7 @@ export function getDb(): Database.Database {
 export async function initDatabase(): Promise<void> {
   const userDataPath = app.getPath('userData');
   const dbPath = path.join(userDataPath, 'surmela.db');
+  console.log('[DB] Opening database at:', dbPath);
 
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
@@ -21,6 +22,7 @@ export async function initDatabase(): Promise<void> {
 
   createTables();
   seedDefaultData();
+  console.log('[DB] Init complete. Songs:', db.prepare('SELECT COUNT(*) as c FROM songs').get());
 }
 
 function createTables(): void {

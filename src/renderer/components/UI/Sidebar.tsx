@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Music2, ListMusic, Clock, BarChart2, Heart, Search,
   Plus, Pencil, Trash2, ChevronDown, ChevronRight, Moon, Sun,
@@ -23,6 +23,20 @@ export default function Sidebar({ onPlaySong }: SidebarProps) {
 
   const [playlistsOpen, setPlaylistsOpen] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+
+  // On first load: fetch playlists and auto-select the first one
+  useEffect(() => {
+    async function bootstrap() {
+      if (!window.electronAPI) return;
+      const pls = await window.electronAPI.playlists.getAll();
+      setPlaylists(pls);
+      if (pls.length > 0 && !currentPlaylistId) {
+        setCurrentPlaylist(pls[0].id);
+        setActiveView('playlist');
+      }
+    }
+    bootstrap();
+  }, []);
   const [renameValue, setRenameValue] = useState('');
 
   const loadPlaylist = async (id: string) => {
