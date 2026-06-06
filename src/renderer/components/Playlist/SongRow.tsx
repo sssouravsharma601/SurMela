@@ -32,13 +32,23 @@ export default function SongRow({
     setMenuOpen(false);
   };
 
+  const handleDoubleClick = () => {
+    if (song.filePath) {
+      onPlay();
+    } else if (song.youtubeUrl) {
+      window.open(song.youtubeUrl, '_blank');
+    } else {
+      onPlay(); // will select the song and show "No local file" in player bar
+    }
+  };
+
   return (
     <div
       className={clsx(
         'group flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors cursor-pointer relative',
         isActive && 'bg-primary-600/10'
       )}
-      onDoubleClick={onPlay}
+      onDoubleClick={handleDoubleClick}
     >
       {/* Index / play indicator */}
       <div className="w-8 flex-shrink-0 flex items-center justify-center">
