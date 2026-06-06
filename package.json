@@ -20,16 +20,17 @@
   },
   "dependencies": {
     "better-sqlite3": "^9.4.3",
-    "howler": "^2.2.4",
-    "zustand": "^4.5.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-beautiful-dnd": "^13.1.1",
-    "react-virtualized-auto-sizer": "^1.0.24",
-    "react-window": "^1.8.10",
     "clsx": "^2.1.1",
     "electron-store": "^8.2.0",
-    "uuid": "^10.0.0"
+    "howler": "^2.2.4",
+    "lucide-react": "^1.17.0",
+    "react": "^18.3.1",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-dom": "^18.3.1",
+    "react-virtualized-auto-sizer": "^1.0.24",
+    "react-window": "^1.8.10",
+    "uuid": "^10.0.0",
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
@@ -70,14 +71,23 @@
     "mac": {
       "category": "public.app-category.music",
       "icon": "resources/icon.icns",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "icon": "resources/icon.ico",
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "linux": {
-      "target": ["AppImage", "deb"]
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     }
   }
 }
