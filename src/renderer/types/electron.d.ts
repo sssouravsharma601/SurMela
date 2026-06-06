@@ -10,6 +10,11 @@ interface ElectronAPI {
   };
   dialog: {
     openFile: () => Promise<string[]>;
+    openFolder: () => Promise<string | null>;
+  };
+  scanner: {
+    scanFolder: (folderPath: string) => Promise<{ matched: number; unmatched: string[]; total: number }>;
+    linkFile: (songId: string, filePath: string) => Promise<boolean>;
   };
   songs: {
     getAll: () => Promise<Song[]>;

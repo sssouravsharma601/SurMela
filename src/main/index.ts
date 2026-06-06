@@ -136,3 +136,22 @@ ipcMain.handle('dialog:openFile', async () => {
   });
   return result.filePaths;
 });
+
+ipcMain.handle('dialog:openFolder', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+    title: 'Select Music Folder',
+  });
+  return result.filePaths[0] ?? null;
+});
+
+ipcMain.handle('songs:scanFolder', async (_e, folderPath: string) => {
+  const { scanMusicFolder } = await import('./scanner');
+  return scanMusicFolder(folderPath);
+});
+
+ipcMain.handle('songs:linkFile', async (_e, songId: string, filePath: string) => {
+  const { updateSong } = await import('./database');
+  updateSong(songId, { filePath });
+  return true;
+});

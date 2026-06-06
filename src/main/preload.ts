@@ -15,6 +15,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Dialog
   dialog: {
     openFile: () => invoke('dialog:openFile'),
+    openFolder: () => invoke('dialog:openFolder'),
+  },
+
+  // Music folder scanner
+  scanner: {
+    scanFolder: (folderPath: string) => invoke('songs:scanFolder', folderPath),
+    linkFile: (songId: string, filePath: string) => invoke('songs:linkFile', songId, filePath),
   },
 
   // Songs

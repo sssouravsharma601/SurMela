@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   Music2, ListMusic, Clock, BarChart2, Heart, Search,
-  Plus, Pencil, Trash2, ChevronDown, ChevronRight, Moon, Sun,
+  Plus, Pencil, Trash2, ChevronDown, ChevronRight, Moon, Sun, FolderSearch,
 } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { Song } from '../../../shared/types';
+import ScanFolderModal from './ScanFolderModal';
 import clsx from 'clsx';
 
 interface SidebarProps {
@@ -23,6 +24,7 @@ export default function Sidebar({ onPlaySong }: SidebarProps) {
 
   const [playlistsOpen, setPlaylistsOpen] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [showScan, setShowScan] = useState(false);
 
   // On first load: fetch playlists and auto-select the first one
   useEffect(() => {
@@ -183,8 +185,15 @@ export default function Sidebar({ onPlaySong }: SidebarProps) {
         )}
       </div>
 
-      {/* Theme toggle */}
-      <div className="p-3 border-t border-white/5">
+      {/* Bottom actions */}
+      <div className="p-3 border-t border-white/5 space-y-1">
+        <button
+          onClick={() => setShowScan(true)}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-primary-400 hover:text-primary-300 hover:bg-primary-600/10 transition-colors font-medium"
+        >
+          <FolderSearch size={15} />
+          Scan Music Folder
+        </button>
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-white/50 hover:text-white hover:bg-white/5 transition-colors"
@@ -193,6 +202,17 @@ export default function Sidebar({ onPlaySong }: SidebarProps) {
           {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
         </button>
       </div>
+
+      {showScan && (
+        <ScanFolderModal
+          onClose={() => setShowScan(false)}
+          onDone={async () => {
+            // Refresh playlists song counts after scan
+            const pls = await window.electronAPI?.playlists.getAll() ?? [];
+            setPlaylists(pls);
+          }}
+        />
+      )}
     </div>
   );
 }
